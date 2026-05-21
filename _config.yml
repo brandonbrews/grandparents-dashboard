@@ -23,8 +23,9 @@ weather_label_2:   "WA"              # ← update
 cloudinary_cloud:  "dybmaxwvb"
 cloudinary_folder: "hhh-album"
 cloudinary_folder_bonus: "grandparents-bonus-album"
-cloudinary_upload_preset: "hhh-upload"   # ← create this preset in Cloudinary
-cloudinary_tag:    "hhh-album"
+cloudinary_upload_preset: "hhh-upload"
+cloudinary_upload_preset_bonus: "hhh-bonus-upload"
+cloudinary_tag:    "hhh"
 
 # ── Background options ───────────────────────
 bg_modes:
