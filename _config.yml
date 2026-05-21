@@ -1,0 +1,48 @@
+# ─────────────────────────────────────────────
+#  Grandparents Dashboard — Site Configuration
+# ─────────────────────────────────────────────
+
+# Jekyll
+title: The Horns
+description: Grandparents Family Dashboard
+baseurl: "/grandparents-dashboard"
+url: "https://brandonbrews.github.io"
+
+# ── Family identity ──────────────────────────
+family_name:       "The Horns"
+family_short:      "Grandparents"
+crest_image:       "/assets/img/family-crest-metal-on-wood.png"
+
+# ── Location / weather ───────────────────────
+location_label:    "Lakewood, WA - Steilacoom Lake"      # ← update this
+weather_url:       "https://forecast7.com/en/47d17n122d52/city/?unit=us"   # ← update
+weather_label_1:   "CITY"               # ← update
+weather_label_2:   "STATE"              # ← update
+
+# ── Cloudinary ───────────────────────────────
+cloudinary_cloud:  "dybmaxwvb"
+cloudinary_folder: "hhh-album"
+cloudinary_folder_bonus: "grandparents-bonus-album"
+cloudinary_upload_preset: "hhh-upload"   # ← create this preset in Cloudinary
+cloudinary_tag:    "hhh-album"
+
+# ── Background options ───────────────────────
+bg_modes:
+  - family
+  - bonus
+  - nature
+  - crest
+
+# ── Pages / nav ──────────────────────────────
+show_calendar:     true
+show_chores:       false
+show_map:          true
+show_upload:       false
+
+calendar_type:     "apple"
+
+# ── Upload page ──────────────────────────────
+upload_password:   "7117"
+
+# ── Unsplash ─────────────────────────────────
+unsplash_key:      "uVlnR0MpCzzax-Zw8ViI6VOCJuo4z6H0G41lnZUgrWI"
