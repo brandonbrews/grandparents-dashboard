@@ -25,7 +25,7 @@ cloudinary_folder: "hhh-album"
 cloudinary_folder_bonus: "grandparents-bonus-album"
 cloudinary_upload_preset: "hhh-upload"
 cloudinary_upload_preset_bonus: "hhh-bonus-upload"
-cloudinary_tag:    "hhh"
+cloudinary_tag:    "hhh-album"
 
 # ── Background options ───────────────────────
 bg_modes:
