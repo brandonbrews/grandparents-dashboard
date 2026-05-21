@@ -14,10 +14,10 @@ family_short:      "Grandparents"
 crest_image:       "/assets/img/family-crest-metal-on-wood.png"
 
 # ── Location / weather ───────────────────────
-location_label:    "Lakewood, WA - Steilacoom Lake"      # ← update this
+location_label:    "Steilacoom Lake"      # ← update this
 weather_url:       "https://forecast7.com/en/47d17n122d52/city/?unit=us"   # ← update
-weather_label_1:   "CITY"               # ← update
-weather_label_2:   "STATE"              # ← update
+weather_label_1:   "Lakewood"               # ← update
+weather_label_2:   "WA"              # ← update
 
 # ── Cloudinary ───────────────────────────────
 cloudinary_cloud:  "dybmaxwvb"
