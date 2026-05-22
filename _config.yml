@@ -11,21 +11,26 @@ url: "https://brandonbrews.github.io"
 # ── Family identity ──────────────────────────
 family_name:       "The Horns"
 family_short:      "Grandparents"
-crest_image:       "/assets/img/hhh-crest-wood-bg.png"
+crest_images:
+  - "/assets/img/hhh-crest-wood-bg.png"
+  - "/assets/img/hhh-crest-black-bg.png"
+  - "/assets/img/hhh-crest-black-bg-wood-inlay.png"
 
 # ── Location / weather ───────────────────────
-location_label:    "Steilacoom Lake"      # ← update this
-weather_url:       "https://forecast7.com/en/47d17n122d52/city/?unit=us"   # ← update
-weather_label_1:   "Lakewood"               # ← update
-weather_label_2:   "WA"              # ← update
+# Find coords: https://www.latlong.net/
+# Find weather URL: https://forecast7.com (search their city)
+location_label:    "Steilacoom Lake"
+weather_url:       "https://forecast7.com/en/47d17n122d52/lakewood/?unit=us"
+weather_label_1:   "Lakewood"
+weather_label_2:   "WA"
 
 # ── Cloudinary ───────────────────────────────
-cloudinary_cloud:  "dybmaxwvb"
-cloudinary_folder: "hhh-album"
-cloudinary_folder_bonus: "grandparents-bonus-album"
-cloudinary_upload_preset: "hhh-upload"
-cloudinary_upload_preset_bonus: "hhh-bonus-upload"
-cloudinary_tag:    "hhh-album"
+cloudinary_cloud:             "dybmaxwvb"
+cloudinary_folder:            "hhh-album"
+cloudinary_folder_bonus:      "grandparents-bonus-album"
+cloudinary_upload_preset:     "hhh-upload"
+cloudinary_upload_preset_bonus: "hhh-bonus"
+cloudinary_tag:               "hhh"
 
 # ── Background options ───────────────────────
 bg_modes:

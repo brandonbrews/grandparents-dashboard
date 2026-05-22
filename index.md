@@ -1,4 +1,3 @@
-
 ---
 layout: default
 title: Home
@@ -40,6 +39,21 @@ title: Home
         margin-top: 6px; text-shadow: 0 1px 6px rgba(0,0,0,0.6);
     }
     .caption-credit a { color: rgba(255,255,255,0.55); text-decoration: underline; }
+
+    /* ── CREST INDICATOR — dots below crest showing position ── */
+    #crest-indicator {
+        position: fixed; bottom: 160px; left: 50%;
+        transform: translateX(-50%);
+        z-index: 20; display: none;
+        gap: 8px; align-items: center;
+    }
+    #crest-indicator.visible { display: flex; }
+    .crest-dot {
+        width: 8px; height: 8px; border-radius: 50%;
+        background: rgba(255,255,255,0.3);
+        transition: background 0.3s;
+    }
+    .crest-dot.active { background: rgba(255,255,255,0.9); }
 
     /* ── CLOCK / WEATHER ── */
     .bottom-ui {
@@ -105,20 +119,16 @@ title: Home
     #arrow-prev { left: 24px; }
     #arrow-next { right: 24px; }
 
-    /* ── UPLOAD BUTTON — subtle camera icon, top-left ── */
+    /* ── UPLOAD BUTTON — subtle camera, top-left, appears on hover ── */
     #upload-btn {
-        position: fixed; top: 20px; left: 24px;
-        z-index: 500;
-        background: rgba(0,0,0,0.35);
-        backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,0.15);
-        border-radius: 50%;
+        position: fixed; top: 20px; left: 24px; z-index: 500;
+        background: rgba(0,0,0,0.35); backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.15); border-radius: 50%;
         width: 44px; height: 44px;
         display: flex; align-items: center; justify-content: center;
-        font-size: 1.2rem; cursor: pointer;
+        font-size: 1.2rem; cursor: pointer; text-decoration: none;
         opacity: 0; transition: opacity 0.4s;
         -webkit-tap-highlight-color: transparent; touch-action: manipulation;
-        text-decoration: none;
     }
     body:hover #upload-btn { opacity: 1; }
     #upload-btn:hover { background: rgba(0,0,0,0.6); opacity: 1; }
@@ -135,10 +145,12 @@ title: Home
     <div class="caption-credit"   id="caption-credit"></div>
 </div>
 
-<button id="arrow-prev" class="photo-nav-arrow" onclick="prevPhoto()" aria-label="Previous photo">&#10094;</button>
-<button id="arrow-next" class="photo-nav-arrow" onclick="nextPhoto()" aria-label="Next photo">&#10095;</button>
+<!-- Crest position indicator dots -->
+<div id="crest-indicator"></div>
 
-<!-- Upload button: visible on hover/touch, top-left corner -->
+<button id="arrow-prev" class="photo-nav-arrow" onclick="handlePrev()" aria-label="Previous">&#10094;</button>
+<button id="arrow-next" class="photo-nav-arrow" onclick="handleNext()" aria-label="Next">&#10095;</button>
+
 <a id="upload-btn" href="{{ site.baseurl }}/upload" title="Upload photos" aria-label="Upload photos">📷</a>
 
 <div class="bottom-ui">
@@ -147,7 +159,8 @@ title: Home
            href="https://forecast7.com/en/47d17n122d52/lakewood/?unit=us"
            data-label_1="LAKEWOOD" data-label_2="WASHINGTON"
            data-icons="Climacons Animated" data-theme="pure"
-           data-basecolor="transparent" data-textcolor="#ffffff">LAKEWOOD WA</a>
+           data-basecolor="transparent" data-textcolor="#ffffff">LAKEWOOD WA
+            {{ site.weather_label_1 }} {{ site.weather_label_2 }}
         </a>
     </div>
     <div class="clock-box">
@@ -156,14 +169,13 @@ title: Home
     </div>
 </div>
 
-<!-- BG mode buttons — Jekyll renders only the modes listed in _config.yml -->
 <div class="bg-selector">
     {% for mode in site.bg_modes %}
         {% if mode == 'family' %}
         <button class="btn-mode" id="btn-family" onclick="setMode('family')">Family Photos</button>
         {% endif %}
         {% if mode == 'bonus' %}
-        <button class="btn-mode" id="btn-bonus" onclick="setMode('bonus')">Bonus Photos</button>
+        <button class="btn-mode" id="btn-bonus"  onclick="setMode('bonus')">Bonus Photos</button>
         {% endif %}
         {% if mode == 'nature' %}
         <button class="btn-mode" id="btn-nature" onclick="setMode('nature')">Daily Nature</button>
@@ -175,21 +187,29 @@ title: Home
 </div>
 
 <script>
-    /* ── All config comes from Jekyll / _config.yml ──────────────── */
+    /* ── Config from _config.yml ─────────────────────────────────── */
     var CLOUD        = '{{ site.cloudinary_cloud }}';
     var FOLDER       = '{{ site.cloudinary_folder }}';
     var FOLDER_BONUS = '{{ site.cloudinary_folder_bonus }}';
     var TAG          = '{{ site.cloudinary_tag }}';
-    var CREST_PATH   = '{{ site.baseurl }}{{ site.crest_image }}';
     var UNSPLASH_KEY = '{{ site.unsplash_key }}';
     var BG_MODES     = {{ site.bg_modes | jsonify }};
     var BASE_URL     = '{{ site.baseurl }}';
+
+    /* Crest images — array injected from _config.yml crest_images list */
+    var CREST_IMAGES = [
+        {% for img in site.crest_images %}
+        '{{ site.baseurl }}{{ img }}'{% unless forloop.last %},{% endunless %}
+        {% endfor %}
+    ];
     /* ─────────────────────────────────────────────────────────────── */
 
     var photoUrls         = [];
     var activeBg          = 1;
     var currentIndex      = 0;
+    var crestIndex        = 0;
     var slideshowInterval = null;
+    var currentMode       = null;
 
     /* ── Clock ── */
     function updateClock() {
@@ -211,56 +231,36 @@ title: Home
         var img     = new Image();
         img.onload  = function() {
             next.style.backgroundImage = "url('" + url + "')";
-            next.style.opacity = 1;
+            next.style.opacity  = 1;
             current.style.opacity = 0;
             activeBg = nextBg;
         };
         img.src = url;
     }
 
-    /* ── Cloudinary: fetch by tag (works reliably across folders) ── */
-    async function fetchByTag(tag) {
-        var url = 'https://res.cloudinary.com/' + CLOUD
-                + '/image/list/' + tag + '.json?cb=' + Date.now();
-        var resp = await fetch(url);
-        if (!resp.ok) throw new Error('Cloudinary ' + resp.status);
-        var data = await resp.json();
-        return shuffle(data.resources || []).map(function(r) {
-            return 'https://res.cloudinary.com/' + CLOUD
-                 + '/image/upload/q_auto,f_auto,w_2560,c_limit/'
-                 + r.public_id + '.' + r.format;
-        });
-    }
-
-    /* ── Cloudinary: fetch by folder prefix ── */
-    async function fetchByFolder(folder) {
-        // Cloudinary folder listing via resource search tag named after the folder
-        // Falls back to tag if folder list isn't exposed
-        var url = 'https://res.cloudinary.com/' + CLOUD
-                + '/image/list/' + folder + '.json?cb=' + Date.now();
-        var resp = await fetch(url);
-        if (!resp.ok) throw new Error('Cloudinary ' + resp.status);
-        var data = await resp.json();
-        return shuffle(data.resources || []).map(function(r) {
-            return 'https://res.cloudinary.com/' + CLOUD
-                 + '/image/upload/q_auto,f_auto,w_2560,c_limit/'
-                 + r.public_id + '.' + r.format;
-        });
-    }
-
+    /* ── Cloudinary fetch ── */
     function shuffle(arr) {
-        return arr.map(function(r){ return {r:r, s:Math.random()}; })
-                  .sort(function(a,b){ return a.s - b.s; })
+        return arr.map(function(r){ return {r:r,s:Math.random()}; })
+                  .sort(function(a,b){ return a.s-b.s; })
                   .map(function(o){ return o.r; });
     }
 
-    async function loadPhotos(folder, tag) {
+    async function fetchByFolder(folder) {
+        var url  = 'https://res.cloudinary.com/'+CLOUD+'/image/list/'+folder+'.json?cb='+Date.now();
+        var resp = await fetch(url);
+        if (!resp.ok) throw new Error('Cloudinary '+resp.status);
+        var data = await resp.json();
+        return shuffle(data.resources||[]).map(function(r){
+            return 'https://res.cloudinary.com/'+CLOUD
+                 + '/image/upload/q_auto,f_auto,w_2560,c_limit/'
+                 + r.public_id+'.'+r.format;
+        });
+    }
+
+    async function loadPhotos(folder) {
         try {
-            // Try folder first; fall back to tag
-            var urls = [];
-            try { urls = await fetchByFolder(folder); } catch(e) {}
-            if (urls.length === 0 && tag) { urls = await fetchByTag(tag); }
-            if (urls.length === 0) throw new Error('No photos found');
+            var urls = await fetchByFolder(folder);
+            if (!urls.length) throw new Error('No photos in '+folder);
             photoUrls    = urls;
             currentIndex = 0;
             applyBackground(photoUrls[0]);
@@ -274,7 +274,7 @@ title: Home
     function startSlideshow() {
         if (slideshowInterval) clearInterval(slideshowInterval);
         slideshowInterval = setInterval(function(){
-            currentIndex = (currentIndex + 1) % photoUrls.length;
+            currentIndex = (currentIndex+1) % photoUrls.length;
             applyBackground(photoUrls[currentIndex]);
         }, 30000);
     }
@@ -282,17 +282,57 @@ title: Home
         if (slideshowInterval) { clearInterval(slideshowInterval); startSlideshow(); }
     }
 
+    /* ── Photo nav (family / bonus modes) ── */
     function nextPhoto() {
         if (!photoUrls.length) return;
-        currentIndex = (currentIndex + 1) % photoUrls.length;
+        currentIndex = (currentIndex+1) % photoUrls.length;
         applyBackground(photoUrls[currentIndex]);
         resetSlideshow();
     }
     function prevPhoto() {
         if (!photoUrls.length) return;
-        currentIndex = (currentIndex - 1 + photoUrls.length) % photoUrls.length;
+        currentIndex = (currentIndex-1+photoUrls.length) % photoUrls.length;
         applyBackground(photoUrls[currentIndex]);
         resetSlideshow();
+    }
+
+    /* ── Crest cycling ── */
+    function buildCrestDots() {
+        var el = document.getElementById('crest-indicator');
+        el.innerHTML = '';
+        if (CREST_IMAGES.length <= 1) return; // no dots needed for single crest
+        CREST_IMAGES.forEach(function(_, i) {
+            var dot = document.createElement('div');
+            dot.className = 'crest-dot' + (i === crestIndex ? ' active' : '');
+            dot.id = 'crest-dot-' + i;
+            el.appendChild(dot);
+        });
+    }
+
+    function updateCrestDots() {
+        CREST_IMAGES.forEach(function(_, i) {
+            var dot = document.getElementById('crest-dot-' + i);
+            if (dot) dot.className = 'crest-dot' + (i === crestIndex ? ' active' : '');
+        });
+    }
+
+    function showCrest(index) {
+        crestIndex = (index + CREST_IMAGES.length) % CREST_IMAGES.length;
+        applyBackground(CREST_IMAGES[crestIndex]);
+        updateCrestDots();
+    }
+
+    function nextCrest() { showCrest(crestIndex + 1); }
+    function prevCrest() { showCrest(crestIndex - 1); }
+
+    /* ── Unified arrow handlers — behaviour depends on current mode ── */
+    function handleNext() {
+        if (currentMode === 'crest')  nextCrest();
+        else                           nextPhoto();
+    }
+    function handlePrev() {
+        if (currentMode === 'crest')  prevCrest();
+        else                           prevPhoto();
     }
 
     /* ── Nature caption ── */
@@ -313,11 +353,15 @@ title: Home
     /* ── Unsplash daily nature ── */
     async function fetchNature() {
         var today    = new Date();
-        var cacheKey = 'nature-' + today.getFullYear() + '-' + (today.getMonth()+1) + '-' + today.getDate();
+        var cacheKey = 'nature-'+today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
         var cached   = sessionStorage.getItem(cacheKey);
-        if (cached) { var d = JSON.parse(cached); applyBackground(d.url); showCaption(d.loc,d.desc,d.name,d.userUrl,d.photoUrl); return; }
-
-        if (!UNSPLASH_KEY || UNSPLASH_KEY === 'YOUR_UNSPLASH_ACCESS_KEY') {
+        if (cached) {
+            var d = JSON.parse(cached);
+            applyBackground(d.url);
+            showCaption(d.loc,d.desc,d.name,d.userUrl,d.photoUrl);
+            return;
+        }
+        if (!UNSPLASH_KEY || UNSPLASH_KEY === 'uVlnR0MpCzzax-Zw8ViI6VOCJuo4z6H0G41lnZUgrWI') {
             applyBackground('https://images.unsplash.com/photo-1470770841072-f978cf4d019e?q=80&w=2560&auto=format&fit=crop');
             showCaption('Daily Nature','Add unsplash_key to _config.yml','','','');
             return;
@@ -338,9 +382,9 @@ title: Home
             };
             sessionStorage.setItem(cacheKey, JSON.stringify(d));
             applyBackground(d.url);
-            showCaption(d.loc, d.desc, d.name, d.userUrl, d.photoUrl);
+            showCaption(d.loc,d.desc,d.name,d.userUrl,d.photoUrl);
         } catch(e) {
-            console.warn('Unsplash error:', e);
+            console.warn('Unsplash error:',e);
             applyBackground('https://images.unsplash.com/photo-1470770841072-f978cf4d019e?q=80&w=2560&auto=format&fit=crop');
         }
     }
@@ -348,27 +392,41 @@ title: Home
     /* ── Mode selector ── */
     function setMode(mode) {
         if (BG_MODES.indexOf(mode) === -1) mode = BG_MODES[0];
-        localStorage.setItem(BASE_URL + '-bg-mode', mode);
+        currentMode = mode;
+        localStorage.setItem(BASE_URL+'-bg-mode', mode);
 
         document.querySelectorAll('.btn-mode').forEach(function(b){ b.classList.remove('active'); });
-        var btn = document.getElementById('btn-' + mode);
+        var btn = document.getElementById('btn-'+mode);
         if (btn) btn.classList.add('active');
-
-        var showArrows = mode === 'family' || mode === 'bonus';
-        document.getElementById('arrow-prev').style.display = showArrows ? '' : 'none';
-        document.getElementById('arrow-next').style.display = showArrows ? '' : 'none';
 
         if (slideshowInterval) { clearInterval(slideshowInterval); slideshowInterval = null; }
         photoUrls = [];
         hideCaption();
 
-        if      (mode === 'family') { loadPhotos(FOLDER, TAG); }
-        else if (mode === 'bonus')  { loadPhotos(FOLDER_BONUS, TAG + '-bonus'); }
+        /* Arrows: visible for photo modes AND crest (when >1 crest) */
+        var showArrows = (mode === 'family' || mode === 'bonus')
+                      || (mode === 'crest' && CREST_IMAGES.length > 1);
+        document.getElementById('arrow-prev').style.display = showArrows ? '' : 'none';
+        document.getElementById('arrow-next').style.display = showArrows ? '' : 'none';
+
+        /* Crest dots: only in crest mode */
+        var indicator = document.getElementById('crest-indicator');
+        if (mode === 'crest' && CREST_IMAGES.length > 1) {
+            indicator.classList.add('visible');
+        } else {
+            indicator.classList.remove('visible');
+        }
+
+        if      (mode === 'family') { loadPhotos(FOLDER); }
+        else if (mode === 'bonus')  { loadPhotos(FOLDER_BONUS); }
         else if (mode === 'nature') { fetchNature(); }
-        else if (mode === 'crest')  { applyBackground(CREST_PATH); }
+        else if (mode === 'crest')  {
+            buildCrestDots();
+            showCrest(crestIndex); // resume from last viewed crest
+        }
     }
 
-    var saved = localStorage.getItem(BASE_URL + '-bg-mode') || BG_MODES[0];
+    var saved = localStorage.getItem(BASE_URL+'-bg-mode') || BG_MODES[0];
     setMode(saved);
 
     !function(d,s,id){
